@@ -40,6 +40,7 @@
 #'                (consistent with Shiny App) or a Poisson process (consistent with publication)
 #' @param backfill.assign How to assign backfill dose given the open backfill doses. Options are
 #'                        "highest" (default), "lowest", or "random".
+#' @param min_backfill_dose the lowest dose allowed for backfill, default is 1.
 #'
 #' @return A data frame with the number of patients and number of DLTs at each dose level
 #'
@@ -64,7 +65,8 @@ sim.one.trial = function(trial.id = 1,
                          p.response.true = c(1, 1, 1),
                          three.plus.three = FALSE,
                          accrual = "uniform",
-                         backfill.assign = "highest"){
+                         backfill.assign = "highest",
+                         min_backfill_dose = 1){
 
 
 
@@ -403,16 +405,18 @@ sim.one.trial = function(trial.id = 1,
       y.total.plus = y.total + c(y.backfill[-1], y.d) + y[2:d]
       n.total.plus = n.total + c(n.backfill[-1], n.d) + n[2:d]
 
-      ## what do we need to be eligible for backfill????
+      ## what do we need to be eligible for backfill???? ==================
       cond.1 = first.response[1:(d-1)] < clock
       cond.2 = y.total  < b.d[n.total]
       cond.3 = y.total.plus < b.d[n.total.plus]
       cond.4 = colSums(dlt.backfill.calendar[,1:(d-1), drop = F] < Inf, na.rm = TRUE) + n[1:(d-1)] <= n.cap
+      cond.5 = d > min_backfill_dose
 
+      
       safe.doses = cond.2 | cond.3
       if (any(safe.doses == FALSE)) safe.doses[min(which(safe.doses == FALSE)):(d-1)] <- FALSE
 
-      open.doses = cond.1 & cond.4 & safe.doses
+      open.doses = cond.1 & cond.4 & safe.doses & cond.5
 
 
       ## allocate to the highest dose open for backfill
@@ -605,7 +609,8 @@ get.oc.bf <- function(ntrial = 1000,
                       p.response.true = c(1, 1, 1),
                       three.plus.three = FALSE,
                       accrual = "uniform",
-                      backfill.assign = "highest"){
+                      backfill.assign = "highest",
+                      min_backfill_dose = 1){
 
   ############ Sanity #############
   if (target < 0.05) {
@@ -669,7 +674,8 @@ get.oc.bf <- function(ntrial = 1000,
                       p.response.true = p.response.true,
                       three.plus.three = three.plus.three,
                       accrual = accrual,
-                      backfill.assign = backfill.assign)
+                      backfill.assign = backfill.assign,
+                      min_backfill_dose = min_backfill_dose)
 
 
   ndose = length(p.true)
